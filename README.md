@@ -115,3 +115,8 @@ streamlit run app.py
 | **Model Serialization** | Joblib |
 | **Environment Management** | Conda / Virtualenv |
 
+## 📬 Contact
+
+For queries, collaboration, or feedback — feel free to reach out:  
+📧 **iarvinddsingh@gmail.com** | 💼 [LinkedIn](https://www.linkedin.com/in/arvindmatharoo/) | 🧑‍💻 [GitHub](https://github.com/arvindmatharoo)
+
