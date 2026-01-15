@@ -1,122 +1,178 @@
-# ⚽ Player Market Value Predictor
+# ⚽ Football Market Value Intelligence System
 
-> A machine learning–powered project that predicts the **market value of football players (€)** using FIFA-style player attributes — built with **Python, Scikit-learn, and Streamlit**.
-
----
-
-## 📘 Overview
-
-This project applies **Machine Learning** to estimate a football player's market value based on various attributes such as skill ratings, physical characteristics, and playstyle.
-
-The model uses a **Random Forest Regression** pipeline that automatically handles scaling and encoding.  
-A modern **Streamlit web app** provides an interactive interface for both single-player and batch predictions.
+An end-to-end **Data Science & Machine Learning project** that predicts **football player market value tiers (Low / Mid / High)** using player performance, availability, age, and contextual information — built from raw data to a **production-ready FastAPI deployment**.
 
 ---
 
-## 🧠 Key Features
+## 📌 Problem Statement
 
-- ✅ Predicts player market value in euros (€)  
-- ✅ Single-player input or batch CSV upload  
-- ✅ Displays model confidence & prediction spread  
-- ✅ Visualizes predicted value distribution  
-- ✅ Built-in preprocessing (scaling, encoding, imputation)  
-- ✅ Ready for deployment via Streamlit
+Football player market value is influenced by more than just goals.  
+Availability, consistency, age, role, and playing context all contribute to valuation.
+
+This project models **relative market value tiers** using data-driven insights when direct market value data is unavailable.
 
 ---
 
-## 🗂️ Project Structure
+## 🎯 Objectives
 
-📦 football-value-predictor/
-├── app.py # Streamlit web app
-├── value_predictor_pipeline.pkl # Trained ML pipeline (model + preprocessing)
-├── fifa_players.csv # Dataset used for training (optional)
-├── README.md # Project documentation
-├── requirements.txt # Dependencies
-└── notebook.ipynb # Model training notebook
-
+- Design a **proxy target variable** for market value
+- Perform deep **EDA and feature engineering**
+- Train interpretable ML models
+- Validate assumptions using **ablation study**
+- Deploy a **production-ready ML API**
 
 ---
 
-## 🧩 Model Workflow
+## 🗂️ Dataset
 
-1. **Data Cleaning**
-   - Removed missing and irrelevant fields.
-   - Filled numerical missing values using median imputation.
-   - Dropped columns not used for modeling.
+- **Source**: Kaggle – Top 5 European Leagues Player Stats (2022–23)
+- **Players**: 2,769 → filtered to **2,029**
+- **Leagues**:
+  - Premier League  
+  - La Liga  
+  - Serie A  
+  - Bundesliga  
+  - Ligue 1  
 
-2. **Feature Engineering**
-   - Selected 39 total features (35 numeric, 4 categorical).
-   - Applied `log1p()` transformation to target (`value_euro`) to normalize skew.
-
-3. **Preprocessing**
-   - Numeric: `StandardScaler`  
-   - Categorical: `OneHotEncoder(handle_unknown='ignore')`
-
-4. **Model Training**
-   - Algorithm: `RandomForestRegressor (n_estimators=200)`
-   - Evaluation (on test set):
-     - **MAE:** €139,486  
-     - **RMSE:** €960,433  
-     - **R²:** 0.9722  
-
-5. **Deployment**
-   - Model saved using `joblib` as a single `.pkl` pipeline.
-   - Integrated into an interactive **Streamlit** app.
+### Key Raw Features
+- Age, minutes played, starts
+- Goals, assists, xG, xAG (per 90)
+- Progressive carries & passes
+- Position and league
 
 ---
 
-## 🚀 How to Run Locally
+## 🔍 Exploratory Data Analysis (EDA)
 
-### 1️⃣ Clone this repository
-```bash
-git clone https://github.com/<your-username>/football-value-predictor.git
-cd football-value-predictor
+Performed:
+- Univariate, bivariate & multivariate analysis
+- Correlation analysis
+- Distribution and skewness checks
+
+### Key Insights
+- Performance metrics are heavily skewed
+- Minutes played is a major confounder
+- Goals alone are poor indicators of market value
+- Mid-tier players are hardest to classify
+
+---
+
+## 🧠 Target Variable Design
+
+Since real market value is unavailable, a **proxy target** was engineered.
+
+### Value Score Components
+1. **Performance Efficiency**  
+   - Expected Goals (xG)  
+   - Expected Assisted Goals (xAG)
+
+2. **Availability / Trust**  
+   - Minutes played  
+   - Starts
+
+3. **Market Logic**  
+   - Age (younger players valued higher for same output)
+
+### Final Target
+- `value_tier` ∈ **{Low, Mid, High}**
+- Created using **quantile-based binning**
+- Balanced class distribution
+
+---
+
+## ⚙️ Feature Engineering
+
+Raw features were intentionally **compressed into higher-level signals** to reduce noise and multicollinearity.
+
+### Final Features
+- `age_years`
+- `min`
+- `availability_ratio`
+- `offensive_efficiency`
+- `progressive_actions`
+- `position`
+- `compition`
+
+---
+
+## 🤖 Modeling
+
+### Models Used
+- Logistic Regression (baseline)
+- Random Forest Classifier
+
+### Performance
+| Model | Accuracy | Macro F1 |
+|------|----------|----------|
+| Logistic Regression | ~0.90 | ~0.90 |
+| Random Forest | ~0.90 | ~0.90 |
+
+The similar performance indicates strong feature quality and near-linear separability.
+
+---
+
+## 🔬 Ablation Study
+
+To understand feature importance, features were removed systematically.
+
+| Scenario | Accuracy |
+|--------|----------|
+| All Features | **0.904** |
+| No Availability | **0.685** |
+| No Performance | **0.749** |
+| No Age | **0.764** |
+| No Context (Position + League) | **0.889** |
+
+### Key Findings
+- Availability is the strongest driver of market value
+- Performance matters when supported by playing time
+- Age has an independent market effect
+- Context fine-tunes valuation
+
+---
+
+## 🚀 Deployment (FastAPI)
+
+A production-ready **REST API** was built using **FastAPI**.
+
+### Sample Request 
+```json
+{
+"age_years": 24,
+  "min": 2000,
+  "availability_ratio": 0.8,
+  "offensive_efficiency": 0.35,
+  "progressive_actions": 4.5,
+  "position": "MF",
+  "compition": "Premier League"
+}
 ```
-### Create and activate a Virtual Environment (optional)
-```bash
-conda create -n football-predictor python=3.10
-conda activate football-predictor
-```
-or using venv:
-```bash
-python -m venv venv
-source venv/bin/activate
+### Sample Response
+```json
+{
+"predicted_value_tier" : "Mid"
+}
 ```
 
-### Install dependencies 
-```bash
-pip install "numpy<2.0" pandas scikit-learn joblib streamlit plotly
-```
-### Run the streamlit app 
-```bash
-streamlit run app.py
-```
+## Tech Stack 
+- Python
+- Pandas, Numpy
+- Scikit-Learn
+- FastAPI
+- Uvicorn
+- Joblib
+- Matplotlib,Seaborn
 
-# Usage
-1. **Single Player Mode**
-   - Fill in player details (age, height, skills, etc.)
-   - Choose options for categorical features (foot, position, nationality)
-   - Click Predict Player Value
-   - he app shows predicted value, confidence, and approximate standard deviation
-2. **Batch Mode**
-   - Upload a CSV file containing the same features used during training
-   - The app displays predictions in a table
-   - Download results as a CSV file and view prediction distribution
+## Future Improvements
+- Team-strength proxy features
+- Probability-based prediction
+- Model monitoring & drift detection
+- Dockerization and Cloud deployment
+- Frontend Dashboard
 
-## 🧰 Tech Stack
+## Author 
+- **Arvind Singh**
+- **B. Tech Computer Science Engineering**
+- **Focus: Data Science & Engineering**
 
-| Component | Technology |
-|------------|-------------|
-| **Language** | Python 3.10 |
-| **Machine Learning Framework** | Scikit-learn |
-| **Web Framework (UI)** | Streamlit |
-| **Data Handling** | Pandas, NumPy |
-| **Visualization** | Plotly, Matplotlib |
-| **Model Serialization** | Joblib |
-| **Environment Management** | Conda / Virtualenv |
-
-## 📬 Contact
-
-For queries, collaboration, or feedback — feel free to reach out:  
-📧 **iarvinddsingh@gmail.com** | 💼 [LinkedIn](https://www.linkedin.com/in/arvindmatharoo/) | 🧑‍💻 [GitHub](https://github.com/arvindmatharoo)
 
