@@ -173,7 +173,6 @@ A production-ready **REST API** was built using **FastAPI**.
 ## Author 
 - **Arvind Singh**
 - **B. Tech Computer Science Engineering**
-- **Focus: Data Science & Engineering**
 - [Linkedin](https://www.linkedin.com/in/arvindmatharoo/)
 - Gmail: iarvinddsingh@gmail.com
 
